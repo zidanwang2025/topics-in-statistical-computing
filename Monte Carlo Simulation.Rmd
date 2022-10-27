@@ -1,0 +1,59 @@
+# Monte Carlo Simulation
+
+## Introduction
+When an i.i.d. random sample $\mathbf{X}_1, \ldots, \mathbf{X}_n$ is obtained from $f$, we can approximate $\mu$ by a sample average:
+$$
+\hat{\mu}_{\mathrm{MC}}=\frac{1}{n} \sum_{i=1}^n h\left(\mathbf{X}_i\right) \rightarrow \int h(\mathbf{x}) f(\mathbf{x}) d \mathbf{x}=\mu
+$$
+
+## Examples
+### Example 1
+$$\int_1^3 \frac{x}{(1+x^2)^2}dx$$
+$$=\int_1^3 2 \frac{x}{(1+x^2)^2}\frac{1}{2}dx$$
+Where $h(x)=2\frac{2x}{(1+x^2)^2}$ and $f(x)=\frac{1}{2}$, $x\sim Unif(1,3)$   
+Thus, $\int_1^3 \frac{x}{(1+x^2)^2}dx=E(h(x))$
+Using Monte Carlo approximation:    
+```{r}
+set.seed(1693)
+#Define function h(x)
+h_x_1<- function(x){
+  (2*x/(1+x^2)^2)
+}
+#Monte Carlo approximation
+n<-10^6
+#sample n from Unif(1,3)
+x<-runif(n,1,3)
+#compute MC approximation
+mean(sapply(x,h_x_1))
+```
+### Example 2
+$$\int_{-\infty}^{\infty} x^2 exp(-x^2)dx$$
+$$\int_{-\infty}^{\infty} \frac{1}{\sqrt{2\pi}} exp(-\frac{x^2}{2})\sqrt{2\pi} exp(-\frac{x^2}{2})x^2dx$$
+Where $h(x)=\sqrt{2\pi}exp(-\frac{x^2}{2})x^2$ and $f(x)=\frac{1}{\sqrt{2\pi}}exp(-\frac{x^2}{2})$, $x\sim N(0,1)$   
+Thus, $\int_{-\infty}^{\infty} x^2 exp(-x^2)dx=E(h(x))$
+```{r}
+set.seed(1693)
+h_x_2<- function(x){
+  (sqrt(2*pi)*exp(-x^2/2)*x^2)
+}
+n<-10^6
+x<-rnorm(n)
+mean(sapply(x,h_x_2))
+```
+### Example 3
+The joint uniform density is constant over a given range. In this case, the $f_{x,y}(x,y)=1/4$ in range $[-1,1]\times[-1,1]$ and $f_{x,y}(x,y)=0$ outside the range.  
+$$\int_{-1}^{1}\int_{-1}^{1}|x-y|dxdy$$
+$$\int_{-1}^{1}\int_{-1}^{1}4|x-y|\frac {1}{4}dxdy$$
+Where $h(x,y)=|x-y|$ and $f_{x,y}(x,y)=\frac{1}{4}$
+Thus, $\int_{-1}^{1}\int_{-1}^{1}|x-y|dxdy=E(h(x,y))$
+```{r}
+set.seed(1693)
+h_x_3<- function(x,y){
+  4*(abs(x-y))
+}
+n<-10^6
+x<-runif(n,-1,1)
+y<-runif(n,-1,1)
+mean(h_x_3(x,y))
+```
+
