@@ -1,0 +1,21 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+# Exact Simulation
+## Overview
+We use Monte Carlo integration on random variables that do not follow a familiar parametric distribution. However, When the target distribution comes from a standard parametric family, abundant software can help us generate random deviates from the distributions. 
+
+## Example 
+
+Consider the model given by $X \sim lognormal(0,1)$ and $log Y = 9 + 3 logX + e$, where $e \sim N(0, 1)$ is independent of X. Use simulation to estimate $E[Y/X]$.   
+Since $log Y = 9 + 3 logX + e$, $Y = exp\{9 + 3 logX + e\}$
+```{r}
+set.seed(1693)
+n<-10^6
+x<-rlnorm(n,0,1)
+e<-rnorm(n,0,1)
+y<-exp(9+3*log(x)+e)
+mean(y/x)
+```

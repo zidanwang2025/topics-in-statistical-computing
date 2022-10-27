@@ -1,0 +1,136 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+# Adaptive Squeezed Rejection Sampling
+
+## Overview
+Ordinary rejection sampling requires one evaluation of $f$ for every candidate draw $Y$. In cases where evaluating $f$ is computationally expensive but rejection sampling is otherwise appealing, we can achieve improved simulation speed by **squeezed rejection sampling.** 
+
+This strategy prevents the evaluation of $f$ in some instances by using a nonnegative squeezing function, $s$. For $s$ to be a suitable squeezing function, $s(x)$ must not exceed $f(x)$ anywhere on the support of $f$. An envelope, $e$, is also used; as with ordinary rejection sampling, $e(x)=g(x) / \alpha \geq f(x)$ on the support of $f$.
+The algorithm proceeds as follows:    
+**1.** Sample $Y \sim g$.   
+**2.** Sample $U \sim \operatorname{Unif}(0,1)$.   
+**3.** If $U \leq s(Y) / e(Y)$, keep the value of $Y$. Set $X=Y$ and consider $X$ to be an element in the target random sample. Then go to step 6.   
+**4.** Otherwise, determine whether $U \leq f(Y) / e(Y)$. If this inequality holds, keep the value of $Y$, setting $X=Y$. Consider $X$ to be an element in the target random sample; then go to step 6 .   
+**5.** If $Y$ has not yet been kept, reject it as an element in the target random sample.   
+**6.** Return to step 1 until you have accumulated a sample of the desired size.   
+
+The most challenging aspect is the construction of a suitable envelope. Gilks and Wild proposed an automatic envelope generation strategy for squeezed rejection sampling for a continuous, differentiable, log-concave density on a connected region of support. Define the squeezing function on $T_k$ to be the exponential of the piecewise linear lower hull of $\ell$ formed by the chords between adjacent points in $T_k$. This lower hull is given by
+$$
+s_k^*(x)=\frac{\left(x_{i+1}-x\right) \ell\left(x_i\right)+\left(x-x_i\right) \ell\left(x_{i+1}\right)}{x_{i+1}-x_i} \quad \text { for } x \in\left[x_i, x_{i+1}\right]
+$$
+and $i=1, \ldots, k-1$. When $x<x_1$ or $x>x_k$, let $s_k^*(x)=-\infty$. Thus the squeezing function is $s_k(x)=\exp \left\{s_k^*(x)\right\}$.    
+
+## Example
+Suppose we want to estimate $\mathrm{S}=\mathrm{E}\left[\mathrm{X}^2\right]$ where $\mathrm{X}$ has the density that is proportional to $\mathrm{q}(\mathrm{x})=\exp \{-$ $\left.|x|^3 / 3\right\}$. Using adaptive squeezed rejection sampling by setting $k=3$ at $x=-1,0,1$ for construction the upper and inner piece hull (envelope and squeezing functions).   
+
+Envelope function:
+$$
+e^*(x)=\left\{\begin{array}{c}
+\frac{2}{3}-|x|, \text { if } x<-\frac{2}{3} \text { or } x>\frac{2}{3} \\
+0, \text { if }-\frac{2}{3}<x<\frac{2}{3}
+\end{array}\right.
+$$
+or equivalently
+$$
+\begin{gathered}
+e^*(x)=\left\{\begin{array}{c}
+\frac{2}{3}+x, \text { if } x<-\frac{2}{3} \\
+0, \text { if }-\frac{2}{3}<x<\frac{2}{3} \\
+\frac{2}{3}-x, \text { if } x>\frac{2}{3}
+\end{array}\right. \\
+e(x)=\exp \left(e^*(x)\right)=\left\{\begin{array}{c}
+\exp \left\{\frac{2}{3}+x\right\}, \text { if } x<-\frac{2}{3} \\
+1, \text { if }-\frac{2}{3}<x<\frac{2}{3} \\
+\exp \left\{\frac{2}{3}-x\right\}, \text { if } x>\frac{2}{3}
+\end{array}\right.
+\end{gathered}
+$$
+Squeezing function:
+Let the $\log$ of the squeezing function to be $\log (s(x))=-\frac{|x|}{3}$, if $-1<x<1$, which is equivalent to
+$$
+\begin{gathered}
+\log (s(x))=\left\{\begin{array}{c}
+-\frac{x}{3}, \text { if } 0<x<1 \\
+\frac{x}{3}, \text { if }-1<x<0
+\end{array}\right. \\
+s(x)=\exp (\log (s(x)))=\left\{\begin{array}{l}
+\exp \left\{-\frac{x}{3}\right\}, \text { if } 0<x<1 \\
+\exp \left\{\frac{x}{3}\right\}, \text { if }-1<x<0
+\end{array}\right.
+\end{gathered}
+$$
+
+```{r}
+rm(list = ls())
+set.seed(1)
+q <- function(x) {
+  exp(-(abs(x))^3/3)
+  }
+e <- function(x) {
+  ifelse((x > 2 / 3) | (x < -2 / 3),
+         exp(2 / 3 - abs(x)),
+         1
+  )
+  }
+s <- function(x) {
+  ifelse((x > -1) & (x < 1),
+         exp(-abs(x) / 3),
+         0
+  )
+  }
+plot(e, -3, 3, lty = 2, xlab = "x", ylab = "")
+plot(q, -3, 3, lty = 1, add = T)
+plot(s, -3, 3, lty = 3, add = T)
+legend(-3, 1, legend = c("e(x)", "q(x)", "s(x)"), lty = c(2, 1, 3))
+```
+
+Inverse $\mathrm{CDF} G^{-1}$
+$\int_{-\infty}^{\infty} e(x) d x=\int_{-\infty}^{-\frac{2}{3}} \exp \left\{\frac{2}{3}+x\right\} d x+\int_{-\frac{2}{3}}^{\frac{2}{3}} \exp \{0\} d x+\int_{\frac{2}{3}}^{\infty} \exp \left\{\frac{2}{3}-x\right\} d x=\frac{3}{10}$. The normalizing constant is $\frac{3}{10}$.
+$$
+G(x)=\left\{\begin{array}{c}
+\frac{3}{10} \exp \left\{\frac{2}{3}+x\right\}, \text { if } x<-\frac{2}{3} \\
+\frac{3}{10} x+\frac{1}{2}, \text { if }-\frac{2}{3}<x<\frac{2}{3} \\
+1-\frac{3}{10} \exp \left\{\frac{2}{3}+x\right\}, \text { if } x>\frac{2}{3}
+\end{array}\right.
+$$
+$G^{-1}(y)=\left\{\begin{aligned} \log \left(\frac{3}{10} y\right)-\frac{2}{3}, & \text { if } 0<y<\frac{3}{10} \\ \frac{3}{10}\left(y-\frac{1}{2}\right), & \text { if }-\frac{3}{10} \leq y<\frac{7}{10} \\ \frac{2}{3}-\log \left(\frac{3}{10}(1-y)\right), & \text { if } \frac{7}{10} \leq y<1 \end{aligned}\right.$
+
+```{r}
+Ginv <- function(y) {
+  ifelse(y < 3 / 10,
+         log(10 / 3 * y) - 2 / 3,
+         ifelse(y > 7 / 10,
+                2 / 3 - log(10 / 3 * (1 - y)),
+                10 / 3 * (y - 1 / 2)
+                )
+  )
+  }
+ars <- function(n) {
+  i <- 0
+  i1 <- 0
+  j <- 0
+  x <- rep(NA, n)
+  while (i < n) {
+    y <- Ginv(runif(1))
+    u <- runif(1)
+    if (u < s(y) / e(y)) {
+      i <- i + 1
+      i1 <- i1 + 1
+      x[i] <- y
+      } else if (u < q(y) / e(y)) {
+        i <- i + 1
+        x[i] <- y
+        }
+    j <- j + 1
+    }
+  return(list(x = x, acratio.sx = i1 / j, acratio = i / j))
+}
+res <- ars(1e6)
+(ratio.sx <- res$acratio.sx) # Acceptance Ratio under s(x)
+(ratio <- res$acratio) # Acceptance Ratio
+(ans <- mean(res$x^2)) # Estimated E(Xˆ2)
+```
+The acceptance ratio under $s(x)$ is $0.5102933$. The acceptance ratio is $0.7729116 . \mathrm{E}\left(X^2\right)$ is approached by $0.7782454$.
